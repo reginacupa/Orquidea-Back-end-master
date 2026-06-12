@@ -2,30 +2,39 @@ from flask_openapi3 import OpenAPI, Info, Tag
 from flask import Flask, request, jsonify, redirect
 from sqlalchemy.exc import IntegrityError
 from schemas import * 
+from schemas import error
 from models import Produto, Session
 from flask_cors import CORS
 
-info = Info(title='OrquídeaAPI', version='1.0.0')
+info = Info(title='OrquídeaAPI', version='1.2.0')
 app = OpenAPI(__name__, info=info)
 CORS (app)
-doc_tag=Tag(name='Documentação', description= 'Descrição da Aplicaçao')
 
-buy_tag=Tag(name='Buyrotas', description= 'Venda de orquídeas')
+#Definindo tags
+home_tag = Tag(name='Documentação', description= 'Descrição da Aplicaçao')
 
-@app.get('/', tags=[doc_tag])
-def index(): 
+produto_tag = Tag(name='Produto', description= 'Adição, visualização e remoção de produtos à base')
+
+@app.get('/produtos', tags=[home_tag])
+def home(): 
     """Documentação"""
     return redirect('openapi')
 
-@app.get('/list', tags=[buy_tag])
-def list():
+
+
+@app.get('/produtos', tags=[produto_tag],
+         responses={"200": ListagemProdutosSchema, "404":ErrorSchema })
+def get_produtos():
     """Lista de Produtos"""
-    session=Session()
-    produtos=session.query(Produto).all()
-    return apresenta_produtos(produtos)
+    if not Produto:
+        return {"produtos": []}, 200
+    else:
+        return apresenta_produtos(Produto), 200
+       
+    
+@app.post('/produtos', tags=[produto_tag], 
+          responses={"200": ProdutoViewSchema, "409":ErrorSchema })
 
-
-@app.post('/create', tags=[buy_tag])
 def create():
     """Cadastrar de Produtos"""
     try:
@@ -48,7 +57,7 @@ def create():
     except IntegrityError as e: 
         return {"Erro": "Produto já cadastrado"}, 409
     
-@app.delete('/delete/<int:id>', tags=[buy_tag])
+@app.delete('/delete/<int:id>', tags=[produto_tag])
 def delete(): 
     """Deletar Produtos"""
     id_produto=request.view_args.get('id')
@@ -58,7 +67,7 @@ def delete():
         count=session.query(Produto).filter(Produto.id==id_produto).delete()
         session.commit()
         if count: 
-            return{"Menssagem":"Produto excluído com sucesso"}, 200
+            return{"Mensagem":"Produto excluído com sucesso"}, 200
         else:
             return{"Erro":"Produto não encontrado"}, 404
     except Exception as e:
