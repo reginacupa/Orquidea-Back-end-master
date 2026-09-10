@@ -1,7 +1,7 @@
-from pydantic import Basemodel
+from pydantic import BaseModel
 
 
-class ErrorSchema (Basemodel):
+class ErrorSchema (BaseModel):
     """Define uma mensagem de erro"""
 
-    mesage: str 
+    mesage: str
